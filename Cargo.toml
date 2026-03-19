@@ -1,0 +1,60 @@
+[package]
+name = "hive-memory"
+version = "0.1.0"
+edition = "2024"
+description = "Token-optimized MCP memory server for shared agent context, semantic RAG, and multi-agent workflow coordination."
+authors = ["Artem Ross"]
+
+[[bin]]
+name = "hive-memory"
+path = "src/main.rs"
+
+[lib]
+name = "hive_memory"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1"
+axum = "0.7"
+chrono = { version = "0.4", features = ["serde"] }
+dirs-sys = "0.4"
+dotenvy = "0.15.7"
+fastembed = "5.13.0"
+hex = "0.4"
+rmcp = { version = "1", features = ["server", "transport-io", "macros", "transport-streamable-http-server"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sled = "0.34"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[[bench]]
+name = "blob_dedup"
+path = "benches/blob_dedup.rs"
+harness = false
+
+[[bench]]
+name = "stream_delta"
+path = "benches/stream_delta.rs"
+harness = false
+
+[[bench]]
+name = "rag_search"
+path = "benches/rag_search.rs"
+harness = false
+
+[[bench]]
+name = "context_delta"
+path = "benches/context_delta.rs"
+harness = false
