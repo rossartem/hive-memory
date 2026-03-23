@@ -29,8 +29,13 @@ async fn task_coordination_dependencies_and_priority() {
         .task_next(ns, "agent_worker_1")
         .unwrap()
         .expect("Should have a task to claim");
-    assert_eq!(next_task.id, "task_c", "Task C should be selected because B is blocked and C > A in priority");
-    storage.task_claim(ns, &next_task.id, "agent_worker_1").unwrap();
+    assert_eq!(
+        next_task.id, "task_c",
+        "Task C should be selected because B is blocked and C > A in priority"
+    );
+    storage
+        .task_claim(ns, &next_task.id, "agent_worker_1")
+        .unwrap();
 
     // 2. Next agent should get Task A
     let next_task = storage
@@ -38,15 +43,26 @@ async fn task_coordination_dependencies_and_priority() {
         .unwrap()
         .expect("Should have a task to claim");
     assert_eq!(next_task.id, "task_a", "Task A should be selected now");
-    storage.task_claim(ns, &next_task.id, "agent_worker_2").unwrap();
+    storage
+        .task_claim(ns, &next_task.id, "agent_worker_2")
+        .unwrap();
 
     // 3. Next agent should get None because Task B is STILL blocked (A is claimed but not Done)
     let next_task = storage.task_next(ns, "agent_worker_3").unwrap();
-    assert!(next_task.is_none(), "Task B is blocked, shouldn't return anything");
+    assert!(
+        next_task.is_none(),
+        "Task B is blocked, shouldn't return anything"
+    );
 
     // 4. agent_worker_2 completes Task A
     storage
-        .task_update_status(ns, "task_a", "agent_worker_2", TaskStatus::Done, Some("Finished A".to_string()))
+        .task_update_status(
+            ns,
+            "task_a",
+            "agent_worker_2",
+            TaskStatus::Done,
+            Some("Finished A".to_string()),
+        )
         .unwrap();
 
     // 5. Now Task B is unblocked, and can be claimed
@@ -55,7 +71,9 @@ async fn task_coordination_dependencies_and_priority() {
         .unwrap()
         .expect("Should have a task to claim");
     assert_eq!(next_task.id, "task_b", "Task B is unblocked and claimable");
-    storage.task_claim(ns, &next_task.id, "agent_worker_3").unwrap();
+    storage
+        .task_claim(ns, &next_task.id, "agent_worker_3")
+        .unwrap();
 }
 
 fn create_dummy_task(ns: &str, id: &str, priority: i32) -> Task {

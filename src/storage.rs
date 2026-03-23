@@ -9,28 +9,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-tokio::task_local! {
-    pub static AUTH_BEARER: String;
-}
-
-pub fn get_tenant_id() -> Option<String> {
-    AUTH_BEARER
-        .try_with(|t| {
-            use sha2::{Digest, Sha256};
-            let mut hasher = Sha256::new();
-            hasher.update(t.as_bytes());
-            let hash = hex::encode(hasher.finalize());
-            hash[..8].to_string()
-        })
-        .ok()
-}
-
 pub fn resolve_namespace(requested: &str) -> String {
-    if let Some(tenant) = get_tenant_id() {
-        format!("tenant_{}:{}", tenant, requested)
-    } else {
-        requested.to_string()
-    }
+    requested.to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -365,11 +345,10 @@ impl Storage {
         tokio::spawn(async move {
             match storage_clone.embed_text(embed_text).await {
                 Ok(vec) => {
-                    if let Ok(embed_tree) = storage_clone.embed_tree(&namespace_clone) {
-                        if let Ok(bytes) = serde_json::to_vec(&vec) {
+                    if let Ok(embed_tree) = storage_clone.embed_tree(&namespace_clone)
+                        && let Ok(bytes) = serde_json::to_vec(&vec) {
                             let _ = embed_tree.insert(key_clone.as_bytes(), bytes);
                         }
-                    }
                 }
                 Err(e) => tracing::debug!("RAG embedding skipped for key '{}': {}", key_clone, e),
             }
@@ -449,8 +428,8 @@ impl Storage {
         let q = query.to_lowercase();
         let all_memories = self.list_memories(namespace, None, usize::MAX)?;
 
-        if let Ok(query_embed) = self.embed_text(query.to_string()).await {
-            if let Ok(embed_tree) = self.embed_tree(namespace) {
+        if let Ok(query_embed) = self.embed_text(query.to_string()).await
+            && let Ok(embed_tree) = self.embed_tree(namespace) {
                 let mut scored = Vec::new();
                 for memory in &all_memories {
                     let mut score = 0.0;
@@ -462,14 +441,13 @@ impl Storage {
                         score = 0.5;
                     }
 
-                    if let Ok(Some(bytes)) = embed_tree.get(memory.key.as_bytes()) {
-                        if let Ok(vec) = serde_json::from_slice::<Vec<f32>>(&bytes) {
+                    if let Ok(Some(bytes)) = embed_tree.get(memory.key.as_bytes())
+                        && let Ok(vec) = serde_json::from_slice::<Vec<f32>>(&bytes) {
                             let sim = cosine_similarity(&query_embed, &vec);
                             if sim > score {
                                 score = sim;
                             }
                         }
-                    }
                     scored.push((score, memory.clone()));
                 }
 
@@ -481,7 +459,6 @@ impl Storage {
                     .map(|(_, m)| m)
                     .collect());
             }
-        }
 
         Ok(all_memories
             .into_iter()
@@ -506,11 +483,7 @@ impl Storage {
     }
 
     pub fn list_namespaces(&self) -> Result<Vec<String>> {
-        let tenant = get_tenant_id();
-        let expected_prefix = match &tenant {
-            Some(t) => format!("mem:tenant_{}:", t),
-            None => "mem:".to_string(),
-        };
+        let expected_prefix = "mem:";
 
         Ok(self
             .db
@@ -518,7 +491,7 @@ impl Storage {
             .into_iter()
             .filter_map(|n| {
                 let s = String::from_utf8(n.to_vec()).ok()?;
-                s.strip_prefix(&expected_prefix).map(|ns| ns.to_string())
+                s.strip_prefix(expected_prefix).map(|ns| ns.to_string())
             })
             .collect())
     }
@@ -810,13 +783,11 @@ impl Storage {
             .task_get(namespace, task_id)?
             .ok_or_else(|| anyhow::anyhow!("Task '{task_id}' not found"))?;
 
-        if task.status == TaskStatus::Claimed || task.status == TaskStatus::InProgress {
-            if let Some(owner) = &task.owner {
-                if owner != agent_id && !task.is_claim_expired() {
+        if (task.status == TaskStatus::Claimed || task.status == TaskStatus::InProgress)
+            && let Some(owner) = &task.owner
+                && owner != agent_id && !task.is_claim_expired() {
                     return Err(anyhow::anyhow!("Task already owned by '{owner}'"));
                 }
-            }
-        }
 
         if !task.status.is_terminal() {
             let blocked_by: Vec<String> = task
@@ -863,11 +834,10 @@ impl Storage {
             .task_get(namespace, task_id)?
             .ok_or_else(|| anyhow::anyhow!("Task '{task_id}' not found"))?;
 
-        if let Some(owner) = &task.owner {
-            if owner != agent_id {
+        if let Some(owner) = &task.owner
+            && owner != agent_id {
                 return Err(anyhow::anyhow!("Only owner '{owner}' can update this task"));
             }
-        }
 
         let now = Utc::now();
         task.status = status.clone();

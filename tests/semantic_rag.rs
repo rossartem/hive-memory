@@ -11,9 +11,21 @@ async fn test_semantic_rag_robustness() {
 
     // 1. Insert documents
     let docs = vec![
-        ("doc_auth", "We use JWT tokens (Bearer) to authenticate users with our Axum API.", vec!["auth".to_string()]),
-        ("doc_db", "The system relies on PostgreSQL for persistence and Redis for caching.", vec!["db".to_string()]),
-        ("doc_k8s", "Deployment to Kubernetes uses Helm charts scaling pod replicas via HPA.", vec!["infra".to_string()]),
+        (
+            "doc_auth",
+            "We use JWT tokens (Bearer) to authenticate users with our Axum API.",
+            vec!["auth".to_string()],
+        ),
+        (
+            "doc_db",
+            "The system relies on PostgreSQL for persistence and Redis for caching.",
+            vec!["db".to_string()],
+        ),
+        (
+            "doc_k8s",
+            "Deployment to Kubernetes uses Helm charts scaling pod replicas via HPA.",
+            vec!["infra".to_string()],
+        ),
     ];
 
     for (key, val, tags) in docs {
@@ -39,9 +51,15 @@ async fn test_semantic_rag_robustness() {
     for _ in 0..15 {
         tokio::time::sleep(Duration::from_millis(500)).await;
         // Search query implicitly looking for auth ("sign in")
-        let results = storage.search_memories(ns, "how do people sign in to the system?", 3).await.unwrap();
+        let results = storage
+            .search_memories(ns, "how do people sign in to the system?", 3)
+            .await
+            .unwrap();
         if !results.is_empty() {
-            assert_eq!(results[0].key, "doc_auth", "The top result MUST be doc_auth");
+            assert_eq!(
+                results[0].key, "doc_auth",
+                "The top result MUST be doc_auth"
+            );
             hit = true;
             break;
         }
@@ -52,5 +70,8 @@ async fn test_semantic_rag_robustness() {
     // Exact fallback tests (testing if fallback substring match works)
     let db_results = storage.search_memories(ns, "PostgreSQL", 1).await.unwrap();
     assert_eq!(db_results.len(), 1);
-    assert_eq!(db_results[0].key, "doc_db", "Fallbacks should catch exact word 'PostgreSQL'");
+    assert_eq!(
+        db_results[0].key, "doc_db",
+        "Fallbacks should catch exact word 'PostgreSQL'"
+    );
 }

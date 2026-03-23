@@ -1,9 +1,10 @@
-use crate::storage::{new_entry, new_snapshot, new_task, Storage, TaskStatus};
+use crate::storage::{Storage, TaskStatus, new_entry, new_snapshot, new_task};
 use chrono::Utc;
 use rmcp::{
+    ServerHandler,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::{ServerCapabilities, ServerInfo},
-    schemars, tool, tool_handler, tool_router, ServerHandler,
+    schemars, tool, tool_handler, tool_router,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -525,7 +526,10 @@ impl SharedMemoryServer {
             created_by.clone(),
         );
         match storage.save_snapshot(snap) {
-            Ok(s) => format!("✓ Snapshot '{name}' created\n  ID: {}\n  Namespace: {namespace}\n  Entries: {count}\n  By: {created_by}", s.id),
+            Ok(s) => format!(
+                "✓ Snapshot '{name}' created\n  ID: {}\n  Namespace: {namespace}\n  Entries: {count}\n  By: {created_by}",
+                s.id
+            ),
             Err(e) => format!("ERROR: {e}"),
         }
     }
@@ -739,7 +743,11 @@ impl SharedMemoryServer {
                 stats.total_bytes,
                 stats.total_refs,
                 stats.bytes_saved,
-                if stats.total_bytes > 0 { stats.bytes_saved as f64 / stats.total_bytes as f64 + 1.0 } else { 1.0 }
+                if stats.total_bytes > 0 {
+                    stats.bytes_saved as f64 / stats.total_bytes as f64 + 1.0
+                } else {
+                    1.0
+                }
             ),
             Err(e) => format!("ERROR: {e}"),
         }
@@ -898,7 +906,10 @@ impl SharedMemoryServer {
         );
         let storage = self.storage.read().await;
         match storage.task_create(task) {
-            Ok(t) => format!("✓ Task created\n  ID: {}\n  Title: {title}\n  Priority: {priority}\n  Namespace: {namespace}\n  By: {created_by}", t.id),
+            Ok(t) => format!(
+                "✓ Task created\n  ID: {}\n  Title: {title}\n  Priority: {priority}\n  Namespace: {namespace}\n  By: {created_by}",
+                t.id
+            ),
             Err(e) => format!("ERROR: {e}"),
         }
     }
